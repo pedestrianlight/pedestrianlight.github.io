@@ -1,276 +1,281 @@
+/*
+	Multiverse by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+*/
 
+(function($) {
 
-(function ($) {
-
-	var $window = $(window),
+	var	$window = $(window),
 		$body = $('body'),
-		$sidebar = $('#sidebar');
+		$wrapper = $('#wrapper');
 
 	// Breakpoints.
-	breakpoints({
-		xlarge: ['1281px', '1680px'],
-		large: ['981px', '1280px'],
-		medium: ['737px', '980px'],
-		small: ['481px', '736px'],
-		xsmall: [null, '480px']
-	});
+		breakpoints({
+			xlarge:  [ '1281px',  '1680px' ],
+			large:   [ '981px',   '1280px' ],
+			medium:  [ '737px',   '980px'  ],
+			small:   [ '481px',   '736px'  ],
+			xsmall:  [ null,      '480px'  ]
+		});
 
-	// Hack: Enable IE flexbox workarounds.
-	if (browser.name == 'ie')
-		$body.addClass('is-ie');
+	// Hack: Enable IE workarounds.
+		if (browser.name == 'ie')
+			$body.addClass('ie');
 
-	// Play initial animations on page load.
-	$window.on('load', function () {
-		window.setTimeout(function () {
-			$body.removeClass('is-preload');
-		}, 100);
-	});
+	// Touch?
+		if (browser.mobile)
+			$body.addClass('touch');
 
-	// Forms.
+	// Transitions supported?
+		if (browser.canUse('transition')) {
 
-	// Hack: Activate non-input submits.
-	$('form').on('click', '.submit', function (event) {
+			// Play initial animations on page load.
+				$window.on('load', function() {
+					window.setTimeout(function() {
+						$body.removeClass('is-preload');
+					}, 100);
+				});
 
-		// Stop propagation, default.
-		event.stopPropagation();
-		event.preventDefault();
+			// Prevent transitions/animations on resize.
+				var resizeTimeout;
 
-		// Submit form.
-		$(this).parents('form').submit();
+				$window.on('resize', function() {
 
-	});
+					window.clearTimeout(resizeTimeout);
 
-	// Sidebar.
-	if ($sidebar.length > 0) {
+					$body.addClass('is-resizing');
 
-		var $sidebar_a = $sidebar.find('a');
+					resizeTimeout = window.setTimeout(function() {
+						$body.removeClass('is-resizing');
+					}, 100);
 
-		$sidebar_a
-			.addClass('scrolly')
-			.on('click', function () {
+				});
 
-				var $this = $(this);
+		}
 
-				// External link? Bail.
-				if ($this.attr('href').charAt(0) != '#')
-					return;
+	// Scroll back to top.
+		$window.scrollTop(0);
 
-				// Deactivate all links.
-				$sidebar_a.removeClass('active');
+	// Panels.
+		var $panels = $('.panel');
 
-				// Activate link *and* lock it (so Scrollex doesn't try to activate other links as we're scrolling to this one's section).
+		$panels.each(function() {
+
+			var $this = $(this),
+				$toggles = $('[href="#' + $this.attr('id') + '"]'),
+				$closer = $('<div class="closer" />').appendTo($this);
+
+			// Closer.
+				$closer
+					.on('click', function(event) {
+						$this.trigger('---hide');
+					});
+
+			// Events.
 				$this
-					.addClass('active')
-					.addClass('active-locked');
+					.on('click', function(event) {
+						event.stopPropagation();
+					})
+					.on('---toggle', function() {
 
-			})
-			.each(function () {
+						if ($this.hasClass('active'))
+							$this.triggerHandler('---hide');
+						else
+							$this.triggerHandler('---show');
 
-				var $this = $(this),
-					id = $this.attr('href'),
-					$section = $(id);
+					})
+					.on('---show', function() {
 
-				// No section for this link? Bail.
-				if ($section.length < 1)
-					return;
+						// Hide other content.
+							if ($body.hasClass('content-active'))
+								$panels.trigger('---hide');
 
-				// Scrollex.
-				$section.scrollex({
-					mode: 'middle',
-					top: '-20vh',
-					bottom: '-20vh',
-					initialize: function () {
-
-						// Deactivate section.
-						$section.addClass('inactive');
-
-					},
-					enter: function () {
-
-						// Activate section.
-						$section.removeClass('inactive');
-
-						// No locked links? Deactivate all links and activate this section's one.
-						if ($sidebar_a.filter('.active-locked').length == 0) {
-
-							$sidebar_a.removeClass('active');
+						// Activate content, toggles.
 							$this.addClass('active');
+							$toggles.addClass('active');
 
-						}
+						// Activate body.
+							$body.addClass('content-active');
 
-						// Otherwise, if this section's link is the one that's locked, unlock it.
-						else if ($this.hasClass('active-locked'))
-							$this.removeClass('active-locked');
+					})
+					.on('---hide', function() {
+
+						// Deactivate content, toggles.
+							$this.removeClass('active');
+							$toggles.removeClass('active');
+
+						// Deactivate body.
+							$body.removeClass('content-active');
+
+					});
+
+			// Toggles.
+				$toggles
+					.removeAttr('href')
+					.css('cursor', 'pointer')
+					.on('click', function(event) {
+
+						event.preventDefault();
+						event.stopPropagation();
+
+						$this.trigger('---toggle');
+
+					});
+
+		});
+
+		// Global events.
+			$body
+				.on('click', function(event) {
+
+					if ($body.hasClass('content-active')) {
+
+						event.preventDefault();
+						event.stopPropagation();
+
+						$panels.trigger('---hide');
 
 					}
+
+				});
+
+			$window
+				.on('keyup', function(event) {
+
+					if (event.keyCode == 27
+					&&	$body.hasClass('content-active')) {
+
+						event.preventDefault();
+						event.stopPropagation();
+
+						$panels.trigger('---hide');
+
+					}
+
+				});
+
+	// Header.
+		var $header = $('#header');
+
+		// Links.
+			$header.find('a').each(function() {
+
+				var $this = $(this),
+					href = $this.attr('href');
+
+				// Internal link? Skip.
+					if (!href
+					||	href.charAt(0) == '#')
+						return;
+
+				// Redirect on click.
+					$this
+						.removeAttr('href')
+						.css('cursor', 'pointer')
+						.on('click', function(event) {
+
+							event.preventDefault();
+							event.stopPropagation();
+
+							window.location.href = href;
+
+						});
+
+			});
+
+	// Footer.
+		var $footer = $('#footer');
+
+		// Copyright.
+		// This basically just moves the copyright line to the end of the *last* sibling of its current parent
+		// when the "medium" breakpoint activates, and moves it back when it deactivates.
+			$footer.find('.copyright').each(function() {
+
+				var $this = $(this),
+					$parent = $this.parent(),
+					$lastParent = $parent.parent().children().last();
+
+				breakpoints.on('<=medium', function() {
+					$this.appendTo($lastParent);
+				});
+
+				breakpoints.on('>medium', function() {
+					$this.appendTo($parent);
 				});
 
 			});
 
-	}
+	// Main.
+		var $main = $('#main');
 
+		// Thumbs.
+			$main.children('.thumb').each(function() {
 
-	// Tiles.
-	var $tiles = $('.tiles > article');
+				var	$this = $(this),
+					$image = $this.find('.image'), $image_img = $image.children('img'),
+					x;
 
-	$tiles.each(function () {
+				// No image? Bail.
+					if ($image.length == 0)
+						return;
 
-		var $this = $(this),
-			$image = $this.find('.image'), $img = $image.find('img'),
-			$link = $this.find('.link'),
-			x;
+				// Image.
+				// This sets the background of the "image" <span> to the image pointed to by its child
+				// <img> (which is then hidden). Gives us way more flexibility.
 
-		// Image.
+					// Set background.
+						$image.css('background-image', 'url(' + $image_img.attr('src') + ')');
 
-		// Set image.
-		$this.css('background-image', 'url(' + $img.attr('src') + ')');
+					// Set background position.
+						if (x = $image_img.data('position'))
+							$image.css('background-position', x);
 
-		// Set position.
-		if (x = $img.data('position'))
-			$image.css('background-position', x);
-
-		// Hide original.
-		$image.hide();
-
-		// Link.
-		if ($link.length > 0) {
-
-			$x = $link.clone()
-				.text('')
-				.addClass('primary')
-				.appendTo($this);
-
-			$link = $link.add($x);
-
-			$link.on('click', function (event) {
-
-				var href = $link.attr('href');
-
-				// Prevent default.
-				event.stopPropagation();
-				event.preventDefault();
-
-				// Target blank?
-				if ($link.attr('target') == '_blank') {
-
-					// Open in new tab.
-					window.open(href);
-
-				}
-
-				// Otherwise ...
-				else {
-
-					// Start transitioning.
-					$this.addClass('is-transitioning');
-					$wrapper.addClass('is-transitioning');
-
-					// Redirect.
-					window.setTimeout(function () {
-						location.href = href;
-					}, 500);
-
-				}
+					// Hide original img.
+						$image_img.hide();
 
 			});
 
-		}
+		// Poptrox.
+			$main.poptrox({
+				baseZIndex: 20000,
+				caption: function($a) {
 
-	});
+					var s = '';
 
+					$a.nextAll().each(function() {
+						s += this.outerHTML;
+					});
 
-	// Scrolly.
-	$('.scrolly').scrolly({
-		speed: 1000,
-		offset: function () {
+					return s;
 
-			// If <=large, >small, and sidebar is present, use its height as the offset.
-			if (breakpoints.active('<=large')
-				&& !breakpoints.active('<=small')
-				&& $sidebar.length > 0)
-				return $sidebar.height();
+				},
+				fadeSpeed: 300,
+				onPopupClose: function() { $body.removeClass('modal-active'); },
+				onPopupOpen: function() { $body.addClass('modal-active'); },
+				overlayOpacity: 0,
+				popupCloserText: '',
+				popupHeight: 150,
+				popupLoaderText: '',
+				popupSpeed: 300,
+				popupWidth: 150,
+				selector: '.thumb > a.image',
+				usePopupCaption: true,
+				usePopupCloser: true,
+				usePopupDefaultStyling: false,
+				usePopupForceClose: true,
+				usePopupLoader: true,
+				usePopupNav: true,
+				windowMargin: 50
+			});
 
-			return 0;
+			// Hack: Set margins to 0 when 'xsmall' activates.
+				breakpoints.on('<=xsmall', function() {
+					$main[0]._poptrox.windowMargin = 0;
+				});
 
-		}
-	});
-
-	// Spotlights.
-	$('.spotlights > section')
-		.scrollex({
-			mode: 'middle',
-			top: '-10vh',
-			bottom: '-10vh',
-			initialize: function () {
-
-				// Deactivate section.
-				$(this).addClass('inactive');
-
-			},
-			enter: function () {
-
-				// Activate section.
-				$(this).removeClass('inactive');
-
-			}
-		})
-		.each(function () {
-
-			var $this = $(this),
-				$image = $this.find('.image'),
-				$img = $image.find('img'),
-				x;
-
-			// Assign image.
-			$image.css('background-image', 'url(' + $img.attr('src') + ')');
-
-			// Set background position.
-			if (x = $img.data('position'))
-				$image.css('background-position', x);
-
-			// Hide <img>.
-			$img.hide();
-
-		});
-
-	// Features.
-	$('.features')
-		.scrollex({
-			mode: 'middle',
-			top: '-20vh',
-			bottom: '-20vh',
-			initialize: function () {
-
-				// Deactivate section.
-				$(this).addClass('inactive');
-
-			},
-			enter: function () {
-
-				// Activate section.
-				$(this).removeClass('inactive');
-
-			}
-		});
-
-
-
-	// Get the video
-	var video = document.getElementById("myVideo");
-
-	// Get the button
-	var btn = document.getElementById("myBtn");
-
-	// Pause and play the video, and change the button text
-	function myFunction() {
-		if (video.paused) {
-			video.play();
-			btn.innerHTML = "Pause";
-		} else {
-			video.pause();
-			btn.innerHTML = "Play";
-		}
-	}
-
+				breakpoints.on('>xsmall', function() {
+					$main[0]._poptrox.windowMargin = 50;
+				});
 
 })(jQuery);
